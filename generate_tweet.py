@@ -70,8 +70,7 @@ subprocess.run(["git", "push"])
 # 投稿用URL付きツイート作成
 repo_url = os.getenv("REPO_URL")
 image_url = f"{repo_url}/images/image_{today}.jpg"
-tweet_with_url = f"{tweet_text}
-{image_url}"
+tweet_with_url = f"{tweet_text}/n{image_url}"
 
 # POST /2/tweets
 bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
