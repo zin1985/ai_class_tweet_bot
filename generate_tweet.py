@@ -55,6 +55,8 @@ image_data = base64.b64decode(image_b64)
 with open("image.png", "wb") as f:
     f.write(image_data)
 
+print("🖼️ image.png のサイズ:", os.path.getsize("image.png"), "bytes")
+
 # Twitter(X) API認証
 auth = tweepy.OAuth1UserHandler(
     os.getenv("TWITTER_API_KEY"),
