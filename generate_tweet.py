@@ -42,7 +42,7 @@ chat_response = client.chat.completions.create(
 )
 tweet_text = chat_response.choices[0].message.content.strip()
 
-# DALL·Eで画像生成
+# DALL·E画像生成（1024x1024）
 dalle_prompt = (
     f"前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
@@ -51,7 +51,7 @@ dalle_prompt = (
 image_response = client.images.generate(
     model="dall-e-3",
     prompt=dalle_prompt,
-    size="512x512",
+    size="1024x1024",
     quality="standard",
     n=1,
     response_format="b64_json"
@@ -59,11 +59,12 @@ image_response = client.images.generate(
 image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
 
-# 画像保存
+# 画像保存（512×512へリサイズして容量圧縮）
 today = datetime.now().strftime("%Y%m%d%H%M%S")
 image_path = f"images/image_{today}.jpg"
 image = Image.open(BytesIO(image_data)).convert("RGB")
-image.save(image_path, "JPEG", quality=85)
+resized_image = image.resize((512, 512), Image.LANCZOS)
+resized_image.save(image_path, "JPEG", quality=85, optimize=True)
 
 # GitHub PagesへPush（PAT使用）
 repo_url = os.getenv("REPO_URL")
