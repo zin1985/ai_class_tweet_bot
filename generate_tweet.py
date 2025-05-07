@@ -1,4 +1,3 @@
-import openai
 import base64
 import json
 import os
@@ -8,6 +7,10 @@ from PIL import Image
 from io import BytesIO
 import subprocess
 import requests
+from openai import OpenAI
+
+# OpenAIクライアント初期化
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # 設定読み込み
 with open("prompt_config.json", "r", encoding="utf-8") as f:
@@ -19,6 +22,7 @@ with open("keywords1.json", "r", encoding="utf-8") as f1, open("keywords2.json",
     kw2 = random.choice(json.load(f2))
     topic_prompt = f"今日の話題は「{kw1}」と「{kw2}」です。"
 
+# プロンプト組み立て
 CHARACTER_PROMPT = f"""
 あなたは{config['character']}です。
 特徴: {', '.join(config['traits'])}
@@ -28,9 +32,8 @@ CHARACTER_PROMPT = f"""
 {topic_prompt}
 """
 
-# ツイート文生成
-openai.api_key = os.getenv("OPENAI_API_KEY")
-chat_response = openai.chat.completions.create(
+# ChatGPTでツイート文生成
+chat_response = client.chat.completions.create(
     model="gpt-4",
     messages=[
         {"role": "system", "content": CHARACTER_PROMPT},
@@ -39,30 +42,31 @@ chat_response = openai.chat.completions.create(
 )
 tweet_text = chat_response.choices[0].message.content.strip()
 
-# DALL·E画像生成
+# DALL·Eで画像生成
 dalle_prompt = (
     f"前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
     f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したイメージを描いてください。"
 )
-image_response = openai.images.generate(
+image_response = client.images.generate(
     model="dall-e-3",
     prompt=dalle_prompt,
-    n=1,
     size="512x512",
+    quality="standard",
+    n=1,
     response_format="b64_json"
 )
 image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
 
-# 保存
+# 画像保存
 today = datetime.now().strftime("%Y%m%d%H%M%S")
 image_path = f"images/image_{today}.jpg"
 image = Image.open(BytesIO(image_data)).convert("RGB")
 image.save(image_path, "JPEG", quality=85)
 
-# GitHub PagesへPush（PAT）
-repo_url = os.getenv("REPO_URL")  # 例: https://github.com/<user>/<repo>
+# GitHub PagesへPush（PAT使用）
+repo_url = os.getenv("REPO_URL")
 repo_https = repo_url.replace("https://github.com", f"https://x-access-token:{os.getenv('GH_PAT')}@github.com")
 
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
@@ -71,25 +75,23 @@ subprocess.run(["git", "add", image_path])
 subprocess.run(["git", "commit", "-m", f"Add image {image_path}"])
 subprocess.run(["git", "push", repo_https, "HEAD"])
 
-# URL付き投稿文
+# ツイート本文＋画像URL
 page_url = repo_url.replace("https://github.com", "https://").replace(".git", "")
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
-# API v2でツイート（Freeプラン対応）
+# Twitter API v2 でツイート（Bearer Token 使用）
 bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
 tweet_api_url = "https://api.twitter.com/2/tweets"
 headers = {
     "Authorization": f"Bearer {bearer_token}",
     "Content-Type": "application/json"
 }
-payload = {
-    "text": tweet_with_url
-}
+payload = {"text": tweet_with_url}
 
 response = requests.post(tweet_api_url, headers=headers, json=payload)
 
-if response.status_code == 201 or response.status_code == 200:
+if response.status_code in [200, 201]:
     print("✅ ツイート投稿成功（v2）")
 else:
     print("❌ ツイート失敗（v2）:", response.status_code, response.text)
