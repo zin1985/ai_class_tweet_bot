@@ -7,7 +7,7 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 import subprocess
-import tweepy
+import requests
 
 # 設定読み込み
 with open("prompt_config.json", "r", encoding="utf-8") as f:
@@ -30,14 +30,14 @@ CHARACTER_PROMPT = f"""
 
 # ツイート文生成
 openai.api_key = os.getenv("OPENAI_API_KEY")
-chat_response = openai.ChatCompletion.create(
+chat_response = openai.chat.completions.create(
     model="gpt-4",
     messages=[
         {"role": "system", "content": CHARACTER_PROMPT},
         {"role": "user", "content": "今日のツイートを作って"}
     ]
 )
-tweet_text = chat_response["choices"][0]["message"]["content"]
+tweet_text = chat_response.choices[0].message.content.strip()
 
 # DALL·E画像生成
 dalle_prompt = (
@@ -45,13 +45,14 @@ dalle_prompt = (
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
     f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したイメージを描いてください。"
 )
-image_response = openai.Image.create(
+image_response = openai.images.generate(
+    model="dall-e-3",
     prompt=dalle_prompt,
     n=1,
     size="512x512",
     response_format="b64_json"
 )
-image_b64 = image_response["data"][0]["b64_json"]
+image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
 
 # 保存
@@ -75,19 +76,20 @@ page_url = repo_url.replace("https://github.com", "https://").replace(".git", ""
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
-# 環境変数をチェック
-for key in ["TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"]:
-    if os.getenv(key) is None:
-        raise ValueError(f"❌ 環境変数 {key} が未設定です！GitHub Secretsに追加してください！")
+# API v2でツイート（Freeプラン対応）
+bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+tweet_api_url = "https://api.twitter.com/2/tweets"
+headers = {
+    "Authorization": f"Bearer {bearer_token}",
+    "Content-Type": "application/json"
+}
+payload = {
+    "text": tweet_with_url
+}
 
-# OAuth 1.0a 認証で投稿
-auth = tweepy.OAuth1UserHandler(
-    os.getenv("TWITTER_API_KEY"),
-    os.getenv("TWITTER_API_SECRET"),
-    os.getenv("TWITTER_ACCESS_TOKEN"),
-    os.getenv("TWITTER_ACCESS_SECRET")
-)
-api = tweepy.API(auth)
-api.update_status(status=tweet_with_url)
+response = requests.post(tweet_api_url, headers=headers, json=payload)
 
-print("✅ ツイート投稿成功")
+if response.status_code == 201 or response.status_code == 200:
+    print("✅ ツイート投稿成功（v2）")
+else:
+    print("❌ ツイート失敗（v2）:", response.status_code, response.text)
