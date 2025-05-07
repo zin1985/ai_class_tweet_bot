@@ -74,8 +74,7 @@ subprocess.run(["git", "push"])
 # 画像URLをツイートに追加
 repo_url = os.getenv("REPO_URL")
 image_url = f"{repo_url}/images/image_{today}.jpg"
-tweet_with_url = f"{tweet_text}
-{image_url}"
+tweet_with_url = f"{tweet_text}\n{image_url}"
 
 # Twitter(X) API認証
 auth = tweepy.OAuth1UserHandler(
