@@ -75,6 +75,11 @@ page_url = repo_url.replace("https://github.com", "https://").replace(".git", ""
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
+# 環境変数をチェック
+for key in ["TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET"]:
+    if os.getenv(key) is None:
+        raise ValueError(f"❌ 環境変数 {key} が未設定です！GitHub Secretsに追加してください！")
+
 # OAuth 1.0a 認証で投稿
 auth = tweepy.OAuth1UserHandler(
     os.getenv("TWITTER_API_KEY"),
