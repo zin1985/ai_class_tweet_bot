@@ -7,7 +7,7 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 import subprocess
-import requests
+import tweepy
 
 # 設定読み込み
 with open("prompt_config.json", "r", encoding="utf-8") as f:
@@ -39,7 +39,7 @@ chat_response = openai.ChatCompletion.create(
 )
 tweet_text = chat_response["choices"][0]["message"]["content"]
 
-# 画像生成
+# DALL·E画像生成
 dalle_prompt = (
     f"前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
@@ -60,28 +60,30 @@ image_path = f"images/image_{today}.jpg"
 image = Image.open(BytesIO(image_data)).convert("RGB")
 image.save(image_path, "JPEG", quality=85)
 
-# GitHub Pagesへ追加コミット
+# GitHub PagesへPush（PAT）
+repo_url = os.getenv("REPO_URL")  # 例: https://github.com/<user>/<repo>
+repo_https = repo_url.replace("https://github.com", f"https://x-access-token:{os.getenv('GH_PAT')}@github.com")
+
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
 subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
 subprocess.run(["git", "add", image_path])
 subprocess.run(["git", "commit", "-m", f"Add image {image_path}"])
-subprocess.run(["git", "push"])
+subprocess.run(["git", "push", repo_https, "HEAD"])
 
-# 投稿用URL付きツイート作成
-repo_url = os.getenv("REPO_URL")
-image_url = f"{repo_url}/images/image_{today}.jpg"
-tweet_with_url = f"{tweet_text}/n{image_url}"
+# URL付き投稿文
+page_url = repo_url.replace("https://github.com", "https://").replace(".git", "")
+image_url = f"{page_url}/images/image_{today}.jpg"
+tweet_with_url = f"{tweet_text}
+{image_url}"
 
-# POST /2/tweets
-bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
-headers = {
-    "Authorization": f"Bearer {bearer_token}",
-    "Content-Type": "application/json"
-}
-payload = { "text": tweet_with_url }
-response = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=payload)
+# OAuth 1.0a 認証で投稿
+auth = tweepy.OAuth1UserHandler(
+    os.getenv("TWITTER_API_KEY"),
+    os.getenv("TWITTER_API_SECRET"),
+    os.getenv("TWITTER_ACCESS_TOKEN"),
+    os.getenv("TWITTER_ACCESS_SECRET")
+)
+api = tweepy.API(auth)
+api.update_status(status=tweet_with_url)
 
-if response.status_code in (200, 201):
-    print("✅ ツイート投稿成功")
-else:
-    print("❌ ツイート投稿失敗:", response.status_code, response.text)
+print("✅ ツイート投稿成功")
