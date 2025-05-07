@@ -1,19 +1,25 @@
 import openai
-import tweepy
 import base64
 import json
 import os
 import random
+from datetime import datetime
+from PIL import Image
+from io import BytesIO
+import tweepy
+import subprocess
 
 # 設定読み込み
 with open("prompt_config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 
-# ランダムな話題キーワードを選出
-with open("keywords1.json", "r", encoding="utf-8") as f1, open("keywords2.json", "r", encoding="utf-8") as f2:
-    kw1 = random.choice(json.load(f1))
-    kw2 = random.choice(json.load(f2))
-    topic_prompt = f"今日の話題は「{kw1}」と「{kw2}」です。"
+# ランダムな話題キーワードを選出（JSONファイル）
+with open("keywords1.json", "r", encoding="utf-8") as f:
+    kw1 = random.choice(json.load(f))
+with open("keywords2.json", "r", encoding="utf-8") as f:
+    kw2 = random.choice(json.load(f))
+
+topic_prompt = f"今日の話題は「{kw1}」と「{kw2}」です。"
 
 CHARACTER_PROMPT = f"""
 あなたは{config['character']}です。
@@ -35,27 +41,41 @@ chat_response = openai.ChatCompletion.create(
 )
 tweet_text = chat_response["choices"][0]["message"]["content"]
 
-# DALL·Eプロンプト生成
+# DALL·Eプロンプト
 dalle_prompt = (
     f"前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
     f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したイメージを描いてください。"
 )
 
-# DALL·E画像生成（base64デコード）
+# DALL·E画像生成（512x512）
 image_response = openai.Image.create(
     prompt=dalle_prompt,
     n=1,
-    size="1024x1024",
+    size="512x512",
     response_format="b64_json"
 )
-
 image_b64 = image_response["data"][0]["b64_json"]
 image_data = base64.b64decode(image_b64)
-with open("image.png", "wb") as f:
-    f.write(image_data)
 
-print("🖼️ image.png のサイズ:", os.path.getsize("image.png"), "bytes")
+# 画像保存（JPEG圧縮）
+today = datetime.now().strftime("%Y%m%d%H%M%S")
+image_path = f"images/image_{today}.jpg"
+image = Image.open(BytesIO(image_data)).convert("RGB")
+image.save(image_path, "JPEG", quality=85)
+
+# Git Add & Commit（GitHub Pagesに反映）
+subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
+subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
+subprocess.run(["git", "add", image_path])
+subprocess.run(["git", "commit", "-m", f"Add image {image_path}"])
+subprocess.run(["git", "push"])
+
+# 画像URLをツイートに追加
+repo_url = os.getenv("REPO_URL")
+image_url = f"{repo_url}/images/image_{today}.jpg"
+tweet_with_url = f"{tweet_text}
+{image_url}"
 
 # Twitter(X) API認証
 auth = tweepy.OAuth1UserHandler(
@@ -66,8 +86,7 @@ auth = tweepy.OAuth1UserHandler(
 )
 api = tweepy.API(auth)
 
-# ツイート投稿
-media = api.media_upload("image.png")
-api.update_status(status=tweet_text, media_ids=[media.media_id])
+# ツイート投稿（画像URL付き）
+api.update_status(status=tweet_with_url)
 
 print("✅ 投稿完了")
