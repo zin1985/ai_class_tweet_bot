@@ -73,8 +73,7 @@ subprocess.run(["git", "push", repo_https, "HEAD"])
 # URL付き投稿文
 page_url = repo_url.replace("https://github.com", "https://").replace(".git", "")
 image_url = f"{page_url}/images/image_{today}.jpg"
-tweet_with_url = f"{tweet_text}
-{image_url}"
+tweet_with_url = f"{tweet_text}\n{image_url}"
 
 # OAuth 1.0a 認証で投稿
 auth = tweepy.OAuth1UserHandler(
