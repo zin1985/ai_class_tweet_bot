@@ -1,0 +1,30 @@
+
+name: AI Class Bot Auto Tweet
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+jobs:
+  tweet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v3
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install dependencies
+        run: pip install openai Pillow requests
+
+      - name: 🤖 Run tweet bot
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          REPO_URL: ${{ secrets.REPO_URL }}
+          TWITTER_ACCESS_TOKEN_V2: ${{ secrets.TWITTER_ACCESS_TOKEN_V2 }}
+        run: python generate_tweet.py
