@@ -7,6 +7,10 @@ from PIL import Image
 from io import BytesIO
 import subprocess
 import requests
+import hashlib
+import secrets
+from urllib.parse import urlencode, parse_qs
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from openai import OpenAI
 
 # OpenAIクライアント初期化
@@ -81,11 +85,11 @@ page_url = repo_url.replace("https://github.com", "https://").replace(".git", ""
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
-# Twitter API v2 でツイート（Bearer Token 使用）
-bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+# OAuth 2.0 Access Token 認証（User Context）
+access_token = os.getenv("TWITTER_ACCESS_TOKEN_V2")
 tweet_api_url = "https://api.twitter.com/2/tweets"
 headers = {
-    "Authorization": f"Bearer {bearer_token}",
+    "Authorization": f"Bearer {access_token}",
     "Content-Type": "application/json"
 }
 payload = {"text": tweet_with_url}
@@ -93,6 +97,6 @@ payload = {"text": tweet_with_url}
 response = requests.post(tweet_api_url, headers=headers, json=payload)
 
 if response.status_code in [200, 201]:
-    print("✅ ツイート投稿成功（v2）")
+    print("✅ ツイート投稿成功（OAuth 2.0 User Context）")
 else:
-    print("❌ ツイート失敗（v2）:", response.status_code, response.text)
+    print("❌ ツイート失敗:", response.status_code, response.text)
