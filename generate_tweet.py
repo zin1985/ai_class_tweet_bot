@@ -119,22 +119,47 @@ image = image.resize((512, 512), Image.LANCZOS)
 image.save(image_path, "JPEG", quality=85, optimize=True)
 print("💾 画像保存済み:", image_path)
 
+# ====== OGP用HTML生成 ======
+html_path = f"images/image_{today}.html"
+html_content = f"""
+<!DOCTYPE html>
+<html lang=\"ja\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <meta property=\"og:title\" content=\"AI学級委員長ちゃんからの応援メッセージ\">
+    <meta property=\"og:description\" content=\"{tweet_text}\">
+    <meta property=\"og:image\" content=\"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{image_path}\">
+    <meta property=\"og:type\" content=\"article\">
+    <title>AI学級委員長ちゃんの今日の応援</title>
+</head>
+<body>
+    <h1>AI学級委員長ちゃんの応援メッセージ</h1>
+    <p>{tweet_text}</p>
+    <img src=\"{image_path}\" alt=\"AI学級委員長ちゃん\" width=\"300\">
+</body>
+</html>
+"""
+with open(html_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+print("📝 HTML保存済み:", html_path)
+
 # ====== GitHub Pagesにpush ======
 repo_https = REPO_URL.replace("https://github.com", f"https://x-access-token:{GH_PAT}@github.com")
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
 subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
 subprocess.run(["git", "remote", "remove", "origin"], check=False)
 subprocess.run(["git", "remote", "add", "origin", repo_https])
-subprocess.run(["git", "add", image_path])
-subprocess.run(["git", "commit", "-m", f"Add image {image_path}"], check=False)
+subprocess.run(["git", "add", image_path, html_path])
+subprocess.run(["git", "commit", "-m", f"Add image and HTML for {image_path}"], check=False)
 push_result = subprocess.run(["git", "push", "origin", "HEAD"], capture_output=True, text=True)
 print("🚀 GitHubへ画像push結果:", push_result.returncode)
 print(push_result.stdout)
 print(push_result.stderr)
 
 # ====== Twitter投稿 ======
-raw_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/images/image_{today}.jpg"
-short_url = shorten_url(raw_url)
+raw_html_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{html_path}"
+short_url = shorten_url(raw_html_url)
 tweet_with_url = f"{tweet_text}\n{short_url}"
 
 headers = {
