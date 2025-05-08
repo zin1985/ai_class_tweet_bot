@@ -93,9 +93,10 @@ print("📝 ツイート内容:", tweet_text)
 
 # ====== DALL·E画像生成 ======
 dalle_prompt = (
-    f"前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
+    f"参考画像のスタイルを忠実に再現した、前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
-    f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したイメージを描いてください。"
+    f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したポーズや小道具を取り入れてください。"
+    f"絵柄は「iincho_thumbnail_aspect_preserved.jpg」のように、ややビンテージ風味でかわいい4頭身キャラクターで。"
 )
 image_response = client.images.generate(
     model="dall-e-3",
@@ -118,45 +119,22 @@ image = image.resize((512, 512), Image.LANCZOS)
 image.save(image_path, "JPEG", quality=85, optimize=True)
 print("💾 画像保存済み:", image_path)
 
-# ====== OGP付きHTML生成 ======
-os.makedirs("posts", exist_ok=True)
-html_path = f"posts/{today}.html"
-with open(html_path, "w", encoding="utf-8") as f:
-    f.write(f"""
-<!DOCTYPE html>
-<html lang=\"ja\">
-<head>
-  <meta charset=\"UTF-8\">
-  <meta property=\"og:title\" content=\"AI学級委員長ちゃんからの応援\" />
-  <meta property=\"og:description\" content=\"{tweet_text}\" />
-  <meta property=\"og:image\" content=\"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/images/image_{today}.jpg\" />
-  <meta name=\"twitter:card\" content=\"summary_large_image\" />
-  <title>AI学級委員長ちゃん</title>
-</head>
-<body>
-  <h1>AI学級委員長ちゃんからの応援</h1>
-  <img src=\"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/images/image_{today}.jpg\" alt=\"AI学級委員長ちゃん\" style=\"width:100%;\">
-</body>
-</html>
-    """)
-print("📝 HTML生成完了:", html_path)
-
 # ====== GitHub Pagesにpush ======
 repo_https = REPO_URL.replace("https://github.com", f"https://x-access-token:{GH_PAT}@github.com")
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
 subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
 subprocess.run(["git", "remote", "remove", "origin"], check=False)
 subprocess.run(["git", "remote", "add", "origin", repo_https])
-subprocess.run(["git", "add", image_path, html_path])
-subprocess.run(["git", "commit", "-m", f"Add image and HTML for {today}"], check=False)
+subprocess.run(["git", "add", image_path])
+subprocess.run(["git", "commit", "-m", f"Add image {image_path}"], check=False)
 push_result = subprocess.run(["git", "push", "origin", "HEAD"], capture_output=True, text=True)
-print("🚀 GitHubへpush結果:", push_result.returncode)
+print("🚀 GitHubへ画像push結果:", push_result.returncode)
 print(push_result.stdout)
 print(push_result.stderr)
 
 # ====== Twitter投稿 ======
-html_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/posts/{today}.html"
-short_url = shorten_url(html_url)
+raw_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/images/image_{today}.jpg"
+short_url = shorten_url(raw_url)
 tweet_with_url = f"{tweet_text}\n{short_url}"
 
 headers = {
