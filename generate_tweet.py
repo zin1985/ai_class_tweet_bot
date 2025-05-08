@@ -96,7 +96,7 @@ dalle_prompt = (
     f"参考画像のスタイルを忠実に再現した、前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
     f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
     f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したポーズや小道具を取り入れてください。"
-    f"絵柄は「iincho_thumbnail_aspect_preserved.jpg」のように、ややビンテージ風味でかわいい4頭身キャラクターで。"
+    f"以下の画像のスタイルに従って描いてください: https://zin1985.github.io/ai_class_tweet_bot/images/iincho_thumbnail_aspect_preserved.jpg"
 )
 image_response = client.images.generate(
     model="dall-e-3",
