@@ -92,12 +92,19 @@ tweet_text = chat_response.choices[0].message.content.strip()
 print("📝 ツイート内容:", tweet_text)
 
 # ====== DALL·E画像生成 ======
-dalle_prompt = (
-    f"参考画像のスタイルを忠実に再現した、前髪あり＋サイドに結んだ黒髪ポニーテール、太めの眼鏡、"
-    f"切り抜き文字型のAI髪飾り、赤いリボンの制服姿のAI学級委員長のデフォルメアニメ風イラスト。"
-    f"今日のテーマは「{kw1}」と「{kw2}」。それを反映したポーズや小道具を取り入れてください。"
-    f"以下の画像のスタイルに従って描いてください: https://zin1985.github.io/ai_class_tweet_bot/images/iincho_thumbnail_aspect_preserved.jpg"
-)
+dalle_prompt = f"""
+Chibi‑style (exactly 4‑heads‑tall) Japanese schoolgirl.
+Hair: blackish dark‑brown with front bangs and a side ponytail tied high—about 70–80 % up the head’s height above the ear—yet only shoulder‑length.
+Face slightly slimmer than typical chibi, semi‑droopy “jitome” eyes with rich manga‑like expressions.
+Glasses: square frames whose lenses’ vertical height is almost the same as the eyes’ height.
+Classic navy blazer uniform with a red ribbon. A cut‑out hair ornament shaped like the letters “AI” is pinned in her hair.
+Body: slim, well‑proportioned, stylish, with a normal chest size (not exaggerated or minimized).
+Use thicker, clean outlines.
+Draw in a soft, vintage, hand‑drawn style using medium line weight. The strokes should evoke the manga (not anime) version of “Azumanga Daioh.”
+Keep the background lightly desaturated, use minimal shading, and pose the character so she feels lively, cute, and brimming with class‑representative spirit.
+She is interacting with the theme: "{kw1}" and "{kw2}".
+"""
+
 image_response = client.images.generate(
     model="dall-e-3",
     prompt=dalle_prompt,
