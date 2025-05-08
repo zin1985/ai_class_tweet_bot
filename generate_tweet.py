@@ -1,4 +1,4 @@
-# ✅ 完全なトークン更新＆投稿スクリプト（OAuth 2.0 User Context + refresh_token + OpenAI + GitHub push修正済み）
+# ✅ 完全なトークン更新＆投稿スクリプト（OAuth 2.0 User Context + refresh_token + OpenAI + GitHub push修正済み）＋デバッグ追加版（push結果表示あり）
 
 import os
 import json
@@ -38,6 +38,7 @@ def refresh_access_token():
         "refresh_token": REFRESH_TOKEN
     }
     res = requests.post(token_url, headers=headers, data=data)
+    print("🔁 トークン更新レスポンス:", res.status_code, res.text)
     if res.status_code == 200:
         return res.json()["access_token"]
     else:
@@ -57,6 +58,7 @@ with open("keywords1.json", "r", encoding="utf-8") as f1, open("keywords2.json",
     kw1 = random.choice(json.load(f1))
     kw2 = random.choice(json.load(f2))
     topic_prompt = f"今日の話題は「{kw1}」と「{kw2}」です。"
+print("🧠 キーワード選出:", kw1, kw2)
 
 # ====== プロンプト生成 ======
 CHARACTER_PROMPT = f"""
@@ -77,6 +79,7 @@ chat_response = client.chat.completions.create(
     ]
 )
 tweet_text = chat_response.choices[0].message.content.strip()
+print("📝 ツイート内容:", tweet_text)
 
 # ====== DALL·E画像生成 ======
 dalle_prompt = (
@@ -94,6 +97,7 @@ image_response = client.images.generate(
 )
 image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
+print("🖼️ 画像生成完了、サイズ:", len(image_data), "bytes")
 
 # ====== 画像保存（軽量化） ======
 today = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -102,6 +106,7 @@ image_path = f"images/image_{today}.jpg"
 image = Image.open(BytesIO(image_data)).convert("RGB")
 image = image.resize((512, 512), Image.LANCZOS)
 image.save(image_path, "JPEG", quality=85, optimize=True)
+print("💾 画像保存済み:", image_path)
 
 # ====== GitHub Pagesに画像をPush（リモート明示設定） ======
 repo_https = REPO_URL.replace("https://github.com", f"https://x-access-token:{GH_PAT}@github.com")
@@ -110,14 +115,18 @@ subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
 subprocess.run(["git", "remote", "remove", "origin"], check=False)
 subprocess.run(["git", "remote", "add", "origin", repo_https])
 subprocess.run(["git", "add", image_path])
-subprocess.run(["git", "commit", "-m", f"Add image {image_path}"])
-subprocess.run(["git", "push", "origin", "HEAD"])
+subprocess.run(["git", "status"])
+subprocess.run(["git", "ls-files"])
+subprocess.run(["git", "commit", "-m", f"Add image {image_path}"], check=False)
+push_result = subprocess.run(["git", "push", "origin", "HEAD"], capture_output=True, text=True)
+print("🚀 GitHubへ画像push結果:", push_result.returncode)
+print(push_result.stdout)
+print(push_result.stderr)
 
 # ====== Twitter投稿（v2） ======
 page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
-print(image_url)
 
 headers = {
     "Authorization": f"Bearer {TWITTER_ACCESS_TOKEN_V2}",
