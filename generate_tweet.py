@@ -16,6 +16,8 @@ REFRESH_TOKEN = os.getenv("TWITTER_REFRESH_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 REPO_URL = os.getenv("REPO_URL")
 GH_PAT = os.getenv("GH_PAT")
+GITHUB_USERNAME = os.getenv("GITHUB_USERNAME")
+GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 
 # ====== 短縮URL作成関数 ======
 def shorten_url(long_url):
@@ -130,10 +132,8 @@ print(push_result.stdout)
 print(push_result.stderr)
 
 # ====== Twitter投稿 ======
-page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
-raw_url = f"{page_url}.github.io/images/image_{today}.jpg"
+raw_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/images/image_{today}.jpg"
 short_url = shorten_url(raw_url)
-
 tweet_with_url = f"{tweet_text}\n{short_url}"
 
 headers = {
