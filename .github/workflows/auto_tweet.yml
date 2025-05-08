@@ -31,5 +31,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           REPO_URL: ${{ secrets.REPO_URL }}
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          python generate_tweet.py
+          GITHUB_USERNAME: zin1985
+          GITHUB_REPO_NAME: ai_class_tweet_bot
+        run: python generate_tweet.py
