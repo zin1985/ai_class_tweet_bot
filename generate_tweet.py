@@ -1,5 +1,3 @@
-# ✅ 完全なトークン更新＆投稿スクリプト（OAuth 2.0 User Context + refresh_token + OpenAI + GitHub push修正済み）＋デバッグ追加版（push結果表示あり）
-
 import os
 import json
 import base64
@@ -18,6 +16,16 @@ REFRESH_TOKEN = os.getenv("TWITTER_REFRESH_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 REPO_URL = os.getenv("REPO_URL")
 GH_PAT = os.getenv("GH_PAT")
+
+# ====== 短縮URL作成関数 ======
+def shorten_url(long_url):
+    try:
+        res = requests.get(f"https://tinyurl.com/api-create.php?url={long_url}")
+        if res.status_code == 200:
+            return res.text
+    except Exception as e:
+        print("⚠️ URL短縮失敗:", e)
+    return long_url
 
 # ====== アクセストークン更新関数（OAuth2） ======
 def refresh_access_token():
@@ -99,7 +107,7 @@ image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
 print("🖼️ 画像生成完了、サイズ:", len(image_data), "bytes")
 
-# ====== 画像保存（軽量化） ======
+# ====== 画像保存（圧縮） ======
 today = datetime.now().strftime("%Y%m%d%H%M%S")
 os.makedirs("images", exist_ok=True)
 image_path = f"images/image_{today}.jpg"
@@ -108,25 +116,25 @@ image = image.resize((512, 512), Image.LANCZOS)
 image.save(image_path, "JPEG", quality=85, optimize=True)
 print("💾 画像保存済み:", image_path)
 
-# ====== GitHub Pagesに画像をPush（リモート明示設定） ======
+# ====== GitHub Pagesにpush ======
 repo_https = REPO_URL.replace("https://github.com", f"https://x-access-token:{GH_PAT}@github.com")
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
 subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
 subprocess.run(["git", "remote", "remove", "origin"], check=False)
 subprocess.run(["git", "remote", "add", "origin", repo_https])
 subprocess.run(["git", "add", image_path])
-subprocess.run(["git", "status"])
-subprocess.run(["git", "ls-files"])
 subprocess.run(["git", "commit", "-m", f"Add image {image_path}"], check=False)
 push_result = subprocess.run(["git", "push", "origin", "HEAD"], capture_output=True, text=True)
 print("🚀 GitHubへ画像push結果:", push_result.returncode)
 print(push_result.stdout)
 print(push_result.stderr)
 
-# ====== Twitter投稿（v2） ======
+# ====== Twitter投稿 ======
 page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
-image_url = f"{page_url}.github.io/images/image_{today}.jpg"
-tweet_with_url = f"{tweet_text}\n{image_url}"
+raw_url = f"{page_url}.github.io/images/image_{today}.jpg"
+short_url = shorten_url(raw_url)
+
+tweet_with_url = f"{tweet_text}\n{short_url}"
 
 headers = {
     "Authorization": f"Bearer {TWITTER_ACCESS_TOKEN_V2}",
