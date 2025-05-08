@@ -162,7 +162,7 @@ print(push_result.stdout)
 print(push_result.stderr)
 
 # ====== Twitter投稿 ======
-raw_html_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{html_path}"
+raw_html_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{html_path}?v={today}"
 short_url = shorten_url(raw_html_url)
 tweet_with_url = f"{tweet_text}\n{short_url}"
 
