@@ -125,7 +125,7 @@ print(push_result.stderr)
 
 # ====== Twitter投稿（v2） ======
 page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
-image_url = f"{page_url}/images/image_{today}.jpg"
+image_url = f"{page_url}.github.io/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
 headers = {
