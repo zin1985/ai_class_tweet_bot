@@ -1,5 +1,3 @@
-# ✅ 完全なトークン更新＆投稿スクリプト（OAuth 2.0 User Context + refresh_token + OpenAI）
-
 import os
 import json
 import base64
@@ -11,7 +9,7 @@ import requests
 from PIL import Image
 from openai import OpenAI
 
-# ====== 環境変数読み込み ======
+# ====== 環境変数（GitHub Secretsなどから取得） ======
 CLIENT_ID = os.getenv("TWITTER_CLIENT_ID")
 CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET")
 REFRESH_TOKEN = os.getenv("TWITTER_REFRESH_TOKEN")
@@ -19,8 +17,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 REPO_URL = os.getenv("REPO_URL")
 GH_PAT = os.getenv("GH_PAT")
 
-# ====== アクセストークン更新関数（OAuth2） ======
+# ====== アクセストークンを refresh_token から取得 ======
 def refresh_access_token():
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("❌ CLIENT_ID または CLIENT_SECRET が未設定です")
+        exit(1)
+
     token_url = "https://api.twitter.com/2/oauth2/token"
     credentials = f"{CLIENT_ID}:{CLIENT_SECRET}"
     basic_token = base64.b64encode(credentials.encode()).decode()
@@ -33,6 +35,7 @@ def refresh_access_token():
         "grant_type": "refresh_token",
         "refresh_token": REFRESH_TOKEN
     }
+
     res = requests.post(token_url, headers=headers, data=data)
     if res.status_code == 200:
         return res.json()["access_token"]
@@ -40,13 +43,12 @@ def refresh_access_token():
         print("❌ アクセストークン更新失敗:", res.status_code, res.text)
         exit(1)
 
-# ====== アクセストークン取得 ======
 TWITTER_ACCESS_TOKEN_V2 = refresh_access_token()
 
 # ====== OpenAI 初期化 ======
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# ====== 設定読み込みとキーワード選出 ======
+# ====== 設定・キーワード読み込み ======
 with open("prompt_config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 with open("keywords1.json", "r", encoding="utf-8") as f1, open("keywords2.json", "r", encoding="utf-8") as f2:
@@ -54,7 +56,7 @@ with open("keywords1.json", "r", encoding="utf-8") as f1, open("keywords2.json",
     kw2 = random.choice(json.load(f2))
     topic_prompt = f"今日の話題は「{kw1}」と「{kw2}」です。"
 
-# ====== プロンプト生成 ======
+# ====== キャラプロンプト生成 ======
 CHARACTER_PROMPT = f"""
 あなたは{config['character']}です。
 特徴: {', '.join(config['traits'])}
@@ -64,7 +66,7 @@ CHARACTER_PROMPT = f"""
 {topic_prompt}
 """
 
-# ====== ツイート本文生成 ======
+# ====== ツイート文生成 ======
 chat_response = client.chat.completions.create(
     model="gpt-4",
     messages=[
@@ -91,15 +93,15 @@ image_response = client.images.generate(
 image_b64 = image_response.data[0].b64_json
 image_data = base64.b64decode(image_b64)
 
-# ====== 画像保存（軽量化） ======
+# ====== 画像保存（圧縮＋リサイズ） ======
 today = datetime.now().strftime("%Y%m%d%H%M%S")
 os.makedirs("images", exist_ok=True)
 image_path = f"images/image_{today}.jpg"
 image = Image.open(BytesIO(image_data)).convert("RGB")
-image = image.resize((512, 512), Image.LANCZOS)
-image.save(image_path, "JPEG", quality=85, optimize=True)
+resized_image = image.resize((512, 512), Image.LANCZOS)
+resized_image.save(image_path, "JPEG", quality=85, optimize=True)
 
-# ====== GitHub Pagesに画像をPush ======
+# ====== GitHub Pages に push ======
 repo_https = REPO_URL.replace("https://github.com", f"https://x-access-token:{GH_PAT}@github.com")
 subprocess.run(["git", "config", "--global", "user.email", "bot@example.com"])
 subprocess.run(["git", "config", "--global", "user.name", "AI Class Bot"])
@@ -107,11 +109,12 @@ subprocess.run(["git", "add", image_path])
 subprocess.run(["git", "commit", "-m", f"Add image {image_path}"])
 subprocess.run(["git", "push", repo_https, "HEAD"])
 
-# ====== Twitter投稿（v2） ======
+# ====== 投稿用ツイート文とURL構築 ======
 page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
 
+# ====== Twitter API v2 投稿（OAuth2 User Context） ======
 headers = {
     "Authorization": f"Bearer {TWITTER_ACCESS_TOKEN_V2}",
     "Content-Type": "application/json"
@@ -120,6 +123,6 @@ payload = {"text": tweet_with_url}
 res = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=payload)
 
 if res.status_code in [200, 201]:
-    print("✅ ツイート投稿成功（完全OAuth対応）")
+    print("✅ ツイート投稿成功（OAuth2 + refreshトークン）")
 else:
     print("❌ ツイート失敗:", res.status_code, res.text)
