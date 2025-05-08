@@ -117,6 +117,7 @@ subprocess.run(["git", "push", "origin", "HEAD"])
 page_url = REPO_URL.replace("https://github.com", "https://").replace(".git", "")
 image_url = f"{page_url}/images/image_{today}.jpg"
 tweet_with_url = f"{tweet_text}\n{image_url}"
+print(image_url)
 
 headers = {
     "Authorization": f"Bearer {TWITTER_ACCESS_TOKEN_V2}",
