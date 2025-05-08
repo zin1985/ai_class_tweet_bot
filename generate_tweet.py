@@ -120,7 +120,8 @@ image.save(image_path, "JPEG", quality=85, optimize=True)
 print("💾 画像保存済み:", image_path)
 
 # ====== OGP用HTML生成 ======
-html_path = f"images/image_{today}.html"
+os.makedirs("posts", exist_ok=True)
+html_path = f"posts/{today}.html"
 html_content = f"""
 <!DOCTYPE html>
 <html lang=\"ja\">
