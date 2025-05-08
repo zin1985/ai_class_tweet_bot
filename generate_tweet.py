@@ -122,22 +122,25 @@ print("💾 画像保存済み:", image_path)
 # ====== OGP用HTML生成 ======
 os.makedirs("posts", exist_ok=True)
 html_path = f"posts/{today}.html"
+img_tag_url = f"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{image_path}"
+html_image_url = img_tag_url  # og:image も同様に絶対パス
+
 html_content = f"""
 <!DOCTYPE html>
-<html lang=\"ja\">
+<html lang="ja">
 <head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <meta property=\"og:title\" content=\"AI学級委員長ちゃんからの応援メッセージ\">
-    <meta property=\"og:description\" content=\"{tweet_text}\">
-    <meta property=\"og:image\" content=\"https://{GITHUB_USERNAME}.github.io/{GITHUB_REPO_NAME}/{image_path}\">
-    <meta property=\"og:type\" content=\"article\">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="AI学級委員長ちゃんからの応援メッセージ">
+    <meta property="og:description" content="{tweet_text}">
+    <meta property="og:image" content="{html_image_url}">
+    <meta property="og:type" content="article">
     <title>AI学級委員長ちゃんの今日の応援</title>
 </head>
 <body>
     <h1>AI学級委員長ちゃんの応援メッセージ</h1>
     <p>{tweet_text}</p>
-    <img src=\"{image_path}\" alt=\"AI学級委員長ちゃん\" width=\"300\">
+    <img src="{img_tag_url}" alt="AI学級委員長ちゃん" width="300">
 </body>
 </html>
 """
