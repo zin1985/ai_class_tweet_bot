@@ -1,8 +1,6 @@
 name: AI Class Tweet (Text Only)
 
 on:
-  schedule:
-    - cron: '5 * * * *'
   workflow_dispatch:
 
 jobs:
